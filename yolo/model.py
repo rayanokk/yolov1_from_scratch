@@ -62,7 +62,7 @@ class YOLOv1(nn.Module):
         super().__init__()
         self.in_channels = in_channels
         self.conv_layers = self._create_conv_layers(ARCHITECTURE_CONFIG)
-        sel.fc_layers = self._create_fc_layers(S, B, C)
+        self.fc_layers = self._create_fc_layers(S, B, C)
 
     def _create_conv_layers(self, config: list):
         """
@@ -129,4 +129,7 @@ class YOLOv1(nn.Module):
             nn.Linear(4096, S * S * (B*5 +C))
         )
         return model
+
+    def forward(self, x: torch.Tensor):
+        return self.fc_layers(self.conv_layers(x))
 
