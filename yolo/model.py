@@ -61,8 +61,8 @@ class YOLOv1(nn.Module):
         """
         super().__init__()
         self.in_channels = in_channels
-        self._create_conv_layers(ARCHITECTURE_CONFIG)
-        self._create_fc_layers(S, B, C)
+        self.conv_layers = self._create_conv_layers(ARCHITECTURE_CONFIG)
+        sel.fc_layers = self._create_fc_layers(S, B, C)
 
     def _create_conv_layers(self, config: list):
         """
@@ -88,27 +88,45 @@ class YOLOv1(nn.Module):
             elif type(config[i]) == list:
                 for j in range(config[i][-1]):
                     model.add_module(
-                        f"conv_{i}",
+                        f"conv_{i}_{j}_0",
                         CNNBlock(
                             in_channels,
                             config[i][0][1],
                             kernel_size=config[i][0][0], 
                             stride=config[i][0][2], 
-                            padding=config[i][0][1]
+                            padding=config[i][0][3]
                         )
                     )
                     in_channels = config[i][0][1]
                     model.add_module(
-                        f"conv_{i}",
+                        f"conv_{i}_{j}_1",
                         CNNBlock(
                             in_channels, 
                             config[i][1][1], 
                             kernel_size=config[i][1][0], 
                             stride=config[i][1][2], 
-                            padding=config[i][1][1]
+                            padding=config[i][1][3]
                         )
                     )
                     in_channels = config[i][1][1]
             else:
-                model.add_module(nn.MaxPool2d(kernel_size=2, stride=2))
+                model.add_module(
+                    f"pool_{i}",
+                    nn.MaxPool2d(kernel_size=2, stride=2))
         return model
+
+    def _create_fc_layers(self, S: int, B: int, C: int):
+        """
+        Construit la tête dense finale, qui produit un vecteur plat
+        de taille SS(B*5+C) (le reshape en tenseur grill est fait ailleurs, 
+        pas dans le modèle)
+        """
+        model = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(1024 * S * S, 4096),
+            nn.Dropout(0.5),
+            nn.LeakyReLU(0.1),
+            nn.Linear(4096, S * S * (B*5 +C))
+        )
+        return model
+
