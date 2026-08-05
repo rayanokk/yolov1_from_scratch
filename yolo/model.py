@@ -61,6 +61,9 @@ class YOLOv1(nn.Module):
         """
         super().__init__()
         self.in_channels = in_channels
+        self.S = S
+        self.B = B
+        self.C = C
         self.conv_layers = self._create_conv_layers(ARCHITECTURE_CONFIG)
         self.fc_layers = self._create_fc_layers(S, B, C)
 
@@ -118,7 +121,7 @@ class YOLOv1(nn.Module):
     def _create_fc_layers(self, S: int, B: int, C: int):
         """
         Construit la tête dense finale, qui produit un vecteur plat
-        de taille SS(B*5+C) (le reshape en tenseur grill est fait ailleurs, 
+        de taille SS(B*5+C) (le reshape en tenseur grille est fait ailleurs, 
         pas dans le modèle)
         """
         model = nn.Sequential(
