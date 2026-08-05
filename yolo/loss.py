@@ -46,4 +46,25 @@ class YoloLoss(nn.Module):
         self.mse = nn.MSELoss(reduction="sum")
 
     def forward(self, predictions: torch.Tensor, target: torch.Tensor):
-        ...
+        """
+        predictions : (N, S*S*(C+B*5))
+        target : (N, S, S, C+5)
+        """
+        S = self.S
+        B = self.B
+        C = self.C
+        predictions = predictions.reshape(-1, S, S, C + B*5)
+
+        boxes_preds = predictions[..., C:]
+        boxes_preds= boxes_preds.reshape(-1, S, S, B, 5)
+        boxes_preds = boxes_preds[..., 1:5]
+
+        box_target = target[..., C+1:C+5]
+        ious = []
+        for b in range(B):
+            box_pred = boxes_preds[...,b, :]
+            iou = IoU(box_pred, box_target)
+            ious.append(iou)
+        ious = torch.stack(ious, dim=-1)
+
+
