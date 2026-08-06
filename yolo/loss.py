@@ -96,13 +96,16 @@ class YoloLoss(nn.Module):
         ) # (N,S,S,1)
 
         obj_mask = target[..., C:C+1] # (N,S,S,1)
-        x_pred, y_pred = best_boxes[...,0:1][obj_mask.bool()], best_boxes[...,1:2][obj_mask.bool()]
-        w_pred, h_pred = best_boxes[...,2:3][obj_mask.bool()], best_boxes[...,3:4][obj_mask.bool()]
+        x_pred, y_pred = best_boxes[...,0:1], best_boxes[...,1:2]
+        w_pred, h_pred = best_boxes[...,2:3], best_boxes[...,3:4]
 
-        x_target, y_target = box_target[...,0:1][obj_mask.bool()], box_target[...,1:2][obj_mask.bool()]
-        w_target, h_target = box_target[...,2:3][obj_mask.bool()], box_target[...,3:4][obj_mask.bool()]
+        x_target, y_target = box_target[...,0:1], box_target[...,1:2]
+        w_target, h_target = box_target[...,2:3], box_target[...,3:4]
         loss1 = lambda_coord * (
-            mse(x_pred,x_target) +  mse(y_pred, y_target)  
+            mse(obj_mask * x_pred,
+                obj_mask * x_target) +  
+            mse(obj_mask * y_pred, 
+                obj_mask * y_target)  
         )
 
         loss2 = lambda_coord * (
@@ -114,13 +117,15 @@ class YoloLoss(nn.Module):
             )
         )
 
-        loss3 = mse(obj_mask * best_box_conf, obj_mask*best_iou)
+        loss3 = mse(obj_mask * best_box_conf, obj_mask * best_iou)
         loss4 = lambda_noobj * (
-            mse((1-obj_mask) * best_box_conf, (1-obj_mask)*best_iou)
+            mse((1-obj_mask) * conf_preds, (1-obj_mask)*best_iou)
         )
-        loss5 = obj_mask * mse(predictions[..., C], target[..., C])
+        loss5 = mse(obj_mask * predictions[..., :C], 
+                    obj_mask * target[..., :C]
+                )
 
-        return loss1 + loss2 + loss3 + loss4 
+        return loss1 + loss2 + loss3 + loss4 + loss5
 
 
 
