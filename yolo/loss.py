@@ -67,7 +67,7 @@ class YoloLoss(nn.Module):
 
         predictions = predictions.reshape(-1, S, S, C + B*5)
 
-        conf_preds = predictions[...,C]
+        conf_preds = predictions[...,C:]
         conf_preds = conf_preds.reshape(-1, S, S, B, 5)
         conf_preds = conf_preds[..., 0:1] # (N,S,S,B,1)
 
@@ -109,17 +109,17 @@ class YoloLoss(nn.Module):
         )
 
         loss2 = lambda_coord * (
-            mse(torch.sign(w_pred)*torch.sqrt(torch.abs(w_pred)), 
-                torch.sign(w_target)*torch.sqrt(torch.abs(w_target))
+            mse(obj_mask * torch.sign(w_pred)*torch.sqrt(torch.abs(w_pred)), 
+                obj_mask * torch.sign(w_target)*torch.sqrt(torch.abs(w_target))
             ) + 
-            mse(torch.sign(h_pred)*torch.sqrt(torch.abs(h_pred)),
-                torch.sign(h_target)*torch.sqrt(torch.abs(h_target))
+            mse(obj_mask * torch.sign(h_pred)*torch.sqrt(torch.abs(h_pred)),
+                obj_mask * torch.sign(h_target)*torch.sqrt(torch.abs(h_target))
             )
         )
 
         loss3 = mse(obj_mask * best_box_conf, obj_mask * best_iou)
         loss4 = lambda_noobj * (
-            mse((1-obj_mask) * conf_preds, (1-obj_mask)*best_iou)
+            mse((1-obj_mask.unsqueeze(3)) * conf_preds, (1-obj_mask.unsqueeze(3))*best_iou)
         )
         loss5 = mse(obj_mask * predictions[..., :C], 
                     obj_mask * target[..., :C]
