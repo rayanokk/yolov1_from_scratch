@@ -33,7 +33,7 @@ def IoU(boxes_preds: torch.Tensor, boxes_labels: torch.Tensor = None, eps = 1e-6
     area_labels = w2 * h2
     union = area_preds + area_labels - inter 
 
-    return inter / (union + eps)
+    return (inter / (union + eps)).unsqueeze(-1)
 
 class YoloLoss(nn.Module):
     def __init__(self, S: int=7, B: int=2, C: int=20):
@@ -47,24 +47,68 @@ class YoloLoss(nn.Module):
 
     def forward(self, predictions: torch.Tensor, target: torch.Tensor):
         """
-        predictions : (N, S*S*(C+B*5))
-        target : (N, S, S, C+5)
+        calcule la perte YOLO complète entre les prédictions brutes du réseau
+        et la cible encodée.
+        Args :
+            predictions : tenseur (N, S*S*(C+B*5)), sortie brute de YOLOv1.forward
+            target : tenseur (N, S, S, C+5), sortie de encode_targets
+        
+        Returns : 
+            Tenseur scalaire : la perte totale du batch, somme de 5 termes
+            (localisation, confiance objet, confiance no objet, classification),
+            chacun pondéré selon l'équation (3) du papier. 
         """
         S = self.S
         B = self.B
         C = self.C
+        mse = self.mse
+        lambda_coord = self.lambda_coord
         predictions = predictions.reshape(-1, S, S, C + B*5)
 
         boxes_preds = predictions[..., C:]
         boxes_preds= boxes_preds.reshape(-1, S, S, B, 5)
-        boxes_preds = boxes_preds[..., 1:5]
+        boxes_preds = boxes_preds[..., 1:5] # (N,S,S,B,4)
 
-        box_target = target[..., C+1:C+5]
+        box_target = target[..., C+1:C+5] # (N,S,S,4)
         ious = []
         for b in range(B):
-            box_pred = boxes_preds[...,b, :]
+            box_pred = boxes_preds[...,b, :] # (N,S,S,4)
             iou = IoU(box_pred, box_target)
             ious.append(iou)
-        ious = torch.stack(ious, dim=-1)
+        ious = torch.stack(ious)
+        best_box = ious.argmax(dim=0) # (N,S,S,1)
+
+        best_boxes = (
+            best_box * boxes_preds[...,1,:]
+            + (1 - best_box) * boxes_preds[...,0,:]
+        ) # (N,S,S,4)
+        obj_mask = target[..., C:C+1] # (N,S,S,1)
+        loss1 = lambda_coord * (
+            mse(
+                best_boxes[...,0:1][obj_mask.bool()], 
+                box_target[...,0:1][obj_mask.bool()]
+            ) + 
+            mse(
+                best_boxes[...,1:2][obj_mask.bool()], 
+                box_target[...,1:2][obj_mask.bool()]
+            )  
+        )
+        loss2 = lambda_coord * (
+            mse(
+                best_boxes[...,2:3][obj_mask.bool()], 
+                box_target[...,2:3][obj_mask.bool()]
+            ) + 
+            mse(
+                best_boxes[...,3:4][obj_mask.bool()], 
+                box_target[...,3:4][obj_mask.bool()]
+            )  
+        )
+
+
+
+
+
+
+
 
 
