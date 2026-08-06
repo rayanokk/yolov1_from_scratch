@@ -63,10 +63,16 @@ class YoloLoss(nn.Module):
         C = self.C
         mse = self.mse
         lambda_coord = self.lambda_coord
+        lambda_noobj = self.lambda_noobj
+
         predictions = predictions.reshape(-1, S, S, C + B*5)
 
+        conf_preds = predictions[...,C]
+        conf_preds = conf_preds.reshape(-1, S, S, B, 5)
+        conf_preds = conf_preds[..., 0:1] # (N,S,S,B,1)
+
         boxes_preds = predictions[..., C:]
-        boxes_preds= boxes_preds.reshape(-1, S, S, B, 5)
+        boxes_preds = boxes_preds.reshape(-1, S, S, B, 5)
         boxes_preds = boxes_preds[..., 1:5] # (N,S,S,B,4)
 
         box_target = target[..., C+1:C+5] # (N,S,S,4)
@@ -77,33 +83,44 @@ class YoloLoss(nn.Module):
             ious.append(iou)
         ious = torch.stack(ious)
         best_box = ious.argmax(dim=0) # (N,S,S,1)
+        best_iou = ious.max(dim=0).values # (N,S,S,1)
 
         best_boxes = (
             best_box * boxes_preds[...,1,:]
             + (1 - best_box) * boxes_preds[...,0,:]
         ) # (N,S,S,4)
+
+        best_box_conf = (
+            best_box * conf_preds[...,1,:]
+            + (1 - best_box) * conf_preds[...,0,:]
+        ) # (N,S,S,1)
+
         obj_mask = target[..., C:C+1] # (N,S,S,1)
+        x_pred, y_pred = best_boxes[...,0:1][obj_mask.bool()], best_boxes[...,1:2][obj_mask.bool()]
+        w_pred, h_pred = best_boxes[...,2:3][obj_mask.bool()], best_boxes[...,3:4][obj_mask.bool()]
+
+        x_target, y_target = box_target[...,0:1][obj_mask.bool()], box_target[...,1:2][obj_mask.bool()]
+        w_target, h_target = box_target[...,2:3][obj_mask.bool()], box_target[...,3:4][obj_mask.bool()]
         loss1 = lambda_coord * (
-            mse(
-                best_boxes[...,0:1][obj_mask.bool()], 
-                box_target[...,0:1][obj_mask.bool()]
-            ) + 
-            mse(
-                best_boxes[...,1:2][obj_mask.bool()], 
-                box_target[...,1:2][obj_mask.bool()]
-            )  
-        )
-        loss2 = lambda_coord * (
-            mse(
-                best_boxes[...,2:3][obj_mask.bool()], 
-                box_target[...,2:3][obj_mask.bool()]
-            ) + 
-            mse(
-                best_boxes[...,3:4][obj_mask.bool()], 
-                box_target[...,3:4][obj_mask.bool()]
-            )  
+            mse(x_pred,x_target) +  mse(y_pred, y_target)  
         )
 
+        loss2 = lambda_coord * (
+            mse(torch.sign(w_pred)*torch.sqrt(torch.abs(w_pred)), 
+                torch.sign(w_target)*torch.sqrt(torch.abs(w_target))
+            ) + 
+            mse(torch.sign(h_pred)*torch.sqrt(torch.abs(h_pred)),
+                torch.sign(h_target)*torch.sqrt(torch.abs(h_target))
+            )
+        )
+
+        loss3 = mse(obj_mask * best_box_conf, obj_mask*best_iou)
+        loss4 = lambda_noobj * (
+            mse((1-obj_mask) * best_box_conf, (1-obj_mask)*best_iou)
+        )
+        loss5 = obj_mask * mse(predictions[..., C], target[..., C])
+
+        return loss1 + loss2 + loss3 + loss4 
 
 
 
