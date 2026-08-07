@@ -126,11 +126,3 @@ class YoloLoss(nn.Module):
                 )
 
         return loss1 + loss2 + loss3 + loss4 + loss5
-
-
-
-
-
-
-
-
