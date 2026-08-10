@@ -1,4 +1,7 @@
 import torch
+from loss import IoU
+from PIL import Image, ImageDraw
+
 def decode_predictions(pred: torch.Tensor, S: int=7, B: int=2, C: int=20):
     """
     Return : 
@@ -25,5 +28,30 @@ def decode_predictions(pred: torch.Tensor, S: int=7, B: int=2, C: int=20):
 
 def nms(boxes: list, iou_threshold: float, prob_threshold: float):
     """
+    Applique le NMS afin de supprimer les détections qui se chevauchent trop.
     """
-    ...
+    final_boxes = []
+    filtered = [box for box in boxes if box[1] >= prob_threshold]
+    filtered = sorted(filtered, key=lambda box: box[1], reverse=True)
+
+    while filtered != []:
+        chosen = filtered[0]
+        filtered.pop(0)
+        final_boxes.append(chosen)
+        filtered = [box for box in filtered
+                    if box[0] != chosen[0] or (box[0]==chosen[0] 
+                    and IoU(torch.tensor(box[2:6]), torch.tensor(chosen[2:6])) < iou_threshold)]
+    return final_boxes
+
+def draw_boxes(image: Image.Image, boxes: list, class_names: list):
+    """
+    Retourne une copie de l'image annotée
+    """
+    img = image.copy()
+    draw = ImageDraw.Draw(img)
+    for class_idx, confidence, x, y, w, h in boxes:
+        x_pixel = 
+
+
+
+

@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn 
 
-def IoU(boxes_preds: torch.Tensor, boxes_labels: torch.Tensor = None, eps = 1e-6):
+def IoU(boxes_preds: torch.Tensor, boxes_labels: torch.Tensor, eps = 1e-6):
     """
     boxes_preds : [..., 4]
     Calcule l'IoU entre deux jeux de boîtes au format (x,y,w,h). 
