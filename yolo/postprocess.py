@@ -50,8 +50,26 @@ def draw_boxes(image: Image.Image, boxes: list, class_names: list):
     img = image.copy()
     draw = ImageDraw.Draw(img)
     for class_idx, confidence, x, y, w, h in boxes:
-        x_pixel = 
+        x_pixel = x * image.width
+        y_pixel = y * image.height
+        w_pixel = w * image.width
+        h_pixel = h * image.height
 
+        xmin = x_pixel - w_pixel / 2
+        xmax = x_pixel + w_pixel / 2
+        ymin = y_pixel - h_pixel / 2
+        ymax = y_pixel + h_pixel / 2
+
+        draw.rectangle(
+            [xmin, ymin, xmax, ymax],
+            outline="red",
+            width=2
+        )
+
+        label = f"{class_names[class_idx]} {confidence:.2f}"
+        draw.text((xmin,ymin), label, fill="red")
+
+    return img
 
 
 
