@@ -37,7 +37,7 @@ class YOLODataset(Dataset):
         return len(self.voc)
 
     def __getitem__(self, index):
-        image, annotation = self.voc[idx]
+        image, annotation = self.voc[index]
         boxes, labels = parse_voc_annotation(annotation)
 
         image = self.transfrom(image)

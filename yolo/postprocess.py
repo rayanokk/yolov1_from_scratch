@@ -50,6 +50,9 @@ def draw_boxes(image: Image.Image, boxes: list, class_names: list):
     img = image.copy()
     draw = ImageDraw.Draw(img)
     for class_idx, confidence, x, y, w, h in boxes:
+        w = abs(w) #temporaire
+        h = abs(h) #temporaire
+
         x_pixel = x * image.width
         y_pixel = y * image.height
         w_pixel = w * image.width

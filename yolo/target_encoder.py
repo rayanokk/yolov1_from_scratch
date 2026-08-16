@@ -54,29 +54,3 @@ def encode_targets(boxes, labels, S=7, B=2, C=20):
             target[i, j, label] = 1  # one-hot classe
 
     return target
-
-"""
-if __name__ == "__main__":
-    # petit test à la main : 2 boîtes inventées sur une image factice
-    S, B, C = 7, 2, 20
-
-    boxes = [
-        [0.5, 0.5, 0.3, 0.4],   # objet 1 : centre de l'image
-        [0.1, 0.1, 0.1, 0.1],   # objet 2 : coin en haut à gauche
-    ]
-    labels = [0, 3]  # classes 0 et 3
-
-    target = encode_targets(boxes, labels, S=S, B=B, C=C)
-
-    print("Forme du tenseur cible :", target.shape)  # attendu : (7, 7, 25)
-
-    for idx, (box, label) in enumerate(zip(boxes, labels)):
-        x, y, w, h = box
-        i = min(int(S * y), S - 1)
-        j = min(int(S * x), S - 1)
-        print(f"\nObjet {idx} -> cellule ({i}, {j})")
-        print("  confiance :", target[i, j, C].item())
-        print("  classe (one-hot, index attendu =", label, "):",
-              target[i, j, :C].nonzero().item())
-        print("  x, y, w, h encodés :", target[i, j, C + 1:C + 5])
-"""

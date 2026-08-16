@@ -119,7 +119,7 @@ class YoloLoss(nn.Module):
 
         loss3 = mse(obj_mask * best_box_conf, obj_mask * best_iou)
         loss4 = lambda_noobj * (
-            mse((1-obj_mask.unsqueeze(3)) * conf_preds, (1-obj_mask.unsqueeze(3))*best_iou)
+            mse((1-obj_mask.unsqueeze(3)) * conf_preds, torch.zeros_like(conf_preds))
         )
         loss5 = mse(obj_mask * predictions[..., :C], 
                     obj_mask * target[..., :C]

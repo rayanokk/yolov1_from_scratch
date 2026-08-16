@@ -38,34 +38,10 @@ def parse_voc_annotation(annotation, class_to_idx=CLASS_TO_IDX):
 
     return boxes, labels
 
-def load_voc_dataset(root="./data", year="2012", image_set="train", download=True):
+def load_voc_dataset(root="./data", year="2012", image_set="train", download=False):
     """
     Instancie le dataset PASCAL VOC via torchvision.
     La première exécution avec download=True télécharge les données
     (nécessite une connexion réseau) ; ensuite download=False suffit.
     """
     return VOCDetection(root=root, year=year, image_set=image_set, download=download)
-"""
-if __name__ == "__main__":
-    # --- Test 1 : parse_voc_annotation sur une annotation fabriquée à la
-    # main (même structure que ce que renvoie VOCDetection), pour vérifier
-    # la logique sans avoir besoin de télécharger le vrai dataset.
-    fake_annotation = {
-        "annotation": {
-            "filename": "exemple.jpg",
-            "size": {"width": "500", "height": "400", "depth": "3"},
-            "object": [
-                {"name": "horse", "bndbox": {"xmin": "50", "ymin": "80", "xmax": "470", "ymax": "380"}},
-                {"name": "person", "bndbox": {"xmin": "200", "ymin": "100", "xmax": "300", "ymax": "350"}},
-            ],
-        }
-    }
-    boxes, labels = parse_voc_annotation(fake_annotation)
-    print("Test avec annotation fabriquée :")
-    for box, label in zip(boxes, labels):
-        print(f"  classe={VOC_CLASSES[label]} (idx={label}), box(x,y,w,h)={[round(v, 3) for v in box]}")
-"""
-dataset = load_voc_dataset(download=True)
-image, annotation = dataset[0]
-boxes, labels = parse_voc_annotation(annotation)
-print(image.size, boxes, labels)
