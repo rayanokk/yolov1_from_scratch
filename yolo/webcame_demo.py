@@ -57,7 +57,7 @@ if __name__ == "__main__":
         boxes = nms(
         decoded[0],
         iou_threshold=0.5,
-        prob_threshold=0.1
+        prob_threshold=0.3
         )
 
         print("Nombre d'images :", len(decoded))
