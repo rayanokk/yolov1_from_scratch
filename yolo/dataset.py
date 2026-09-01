@@ -24,7 +24,7 @@ class YOLODataset(Dataset):
     """
 
     def __init__(self, root = "./data", year="2012", image_set="train",
-                 S=7, B=2, C=20, img_size=448, download=True): 
+                 S=7, B=2, C=20, img_size=224, download=True): 
         super().__init__()
         self.voc = load_voc_dataset(root=root, year=year, image_set=image_set, download=download)
         self.S, self.B, self.C = S, B, C

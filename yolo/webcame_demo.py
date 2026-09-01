@@ -22,7 +22,7 @@ def load_model(checkpoint_path: str, device: torch.device, S: int=7, B: int=2, C
 
     return model
 
-def preprocess_frame(frame: np.ndarray, img_size: int=448):
+def preprocess_frame(frame: np.ndarray, img_size: int=224):
     """
     Convertit une frame OpenCV en tenseur d'entrée du modèle
     """
@@ -43,7 +43,7 @@ def preprocess_frame(frame: np.ndarray, img_size: int=448):
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = load_model("checkpoints/checkpoint_epoch_26.pth", device)
+    model = load_model("checkpoints/checkpoint_epoch_130.pth", device)
 
     cap = cv2.VideoCapture(0)
     while True:
@@ -57,7 +57,7 @@ if __name__ == "__main__":
         boxes = nms(
         decoded[0],
         iou_threshold=0.5,
-        prob_threshold=0.0001
+        prob_threshold=0.1
         )
 
         print("Nombre d'images :", len(decoded))
