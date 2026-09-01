@@ -1,4 +1,4 @@
-import torch
+import torch 
 import torch.nn as nn 
 
 def IoU(boxes_preds: torch.Tensor, boxes_labels: torch.Tensor, eps = 1e-6):
@@ -109,15 +109,15 @@ class YoloLoss(nn.Module):
         )
 
         loss2 = lambda_coord * (
-            mse(obj_mask * torch.sign(w_pred)*torch.sqrt(torch.abs(w_pred)), 
-                obj_mask * torch.sign(w_target)*torch.sqrt(torch.abs(w_target))
-            ) + 
-            mse(obj_mask * torch.sign(h_pred)*torch.sqrt(torch.abs(h_pred)),
-                obj_mask * torch.sign(h_target)*torch.sqrt(torch.abs(h_target))
+            mse(obj_mask * torch.sign(w_pred)*torch.sqrt(torch.abs(w_pred)+1e-6), 
+                obj_mask * torch.sign(w_target)*torch.sqrt(torch.abs(w_target)+1e-6)
+            ) +
+            mse(obj_mask * torch.sign(h_pred)*torch.sqrt(torch.abs(h_pred)+1e-6),
+                obj_mask * torch.sign(h_target)*torch.sqrt(torch.abs(h_target)+1e-6)
             )
         )
 
-        loss3 = mse(obj_mask * best_box_conf, obj_mask * best_iou)
+        loss3 = mse(obj_mask * best_box_conf, obj_mask * best_iou.detach())
         loss4 = lambda_noobj * (
             mse((1-obj_mask.unsqueeze(3)) * conf_preds, torch.zeros_like(conf_preds))
         )
@@ -125,4 +125,6 @@ class YoloLoss(nn.Module):
                     obj_mask * target[..., :C]
                 )
 
-        return loss1 + loss2 + loss3 + loss4 + loss5
+        #return loss1 + loss2 + loss3 + loss4 + loss5
+        N = predictions.shape[0]
+        return (loss1 + loss2 + loss3 + loss4 + loss5) / N
