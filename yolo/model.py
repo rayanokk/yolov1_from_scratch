@@ -27,6 +27,7 @@ ARCHITECTURE_CONFIG = [
 
 import torch.nn as nn
 import torch
+import torchvision
 
 class CNNBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int, **kwargs):
@@ -51,7 +52,7 @@ class CNNBlock(nn.Module):
         return self.activation(self.conv(x))
 
 class YOLOv1(nn.Module):
-    def __init__(self, in_channels: int=3, S: int=7, B: int=2, C: int=20):
+    def __init__(self, in_channels: int=3, S: int=7, B: int=2, C: int=20, backbone_out_channels: int = 512):
         """
         Modèle YOLOv1 complet (backbone convolutif + tête dense)
         
@@ -64,8 +65,9 @@ class YOLOv1(nn.Module):
         self.S = S
         self.B = B
         self.C = C
-        self.conv_layers = self._create_conv_layers(ARCHITECTURE_CONFIG)
-        self.fc_layers = self._create_fc_layers(S, B, C)
+        #self.conv_layers = self._create_conv_layers(ARCHITECTURE_CONFIG) ancien backbone
+        self.conv_layers = self._create_prettained_backbone()
+        self.fc_layers = self._create_fc_layers(backbone_out_channels, S, B, C)
 
     def _create_conv_layers(self, config: list):
         """
@@ -118,7 +120,7 @@ class YOLOv1(nn.Module):
                     nn.MaxPool2d(kernel_size=2, stride=2))
         return model
 
-    def _create_fc_layers(self, S: int, B: int, C: int):
+    def _create_fc_layers(self, in_channels: int, S: int, B: int, C: int):
         """
         Construit la tête dense finale, qui produit un vecteur plat
         de taille SS(B*5+C) (le reshape en tenseur grille est fait ailleurs, 
@@ -126,7 +128,7 @@ class YOLOv1(nn.Module):
         """
         model = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(1024 * S * S, 4096),
+            nn.Linear(in_channels * S * S, 4096),
             nn.Dropout(0.5),
             nn.LeakyReLU(0.1),
             nn.Linear(4096, S * S * (B*5 +C))
@@ -136,3 +138,9 @@ class YOLOv1(nn.Module):
     def forward(self, x: torch.Tensor):
         return self.fc_layers(self.conv_layers(x))
 
+    def _create_prettained_backbone(self):
+        """
+        Charge le backbone ResNet18 pré-entrainé sans la tête de classification
+        """
+        resnet = torchvision.models.resnet18(weights='IMAGENET1K_V1')
+        return torch.nn.Sequential(*list(resnet.children())[:-2])
